@@ -1,0 +1,187 @@
+# ============================================
+# PlanCheck GitHub 开源项目 - 完整 .gitignore
+# ============================================
+
+# macOS 系统文件
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Icon\r
+.DocumentRevisions-V100/
+.fseventsd/
+.Spotlight-V100/
+.TemporaryItems/
+.Trashes/
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB/
+.AppleDesktop/
+Network Trash Folder/
+Temporary Items/
+.apdisk
+
+# Xcode 项目文件
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.xcworkspace
+!default.xcworkspace
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcuserdata/
+*.xcscheme
+*.playground/
+*.xcuserstate
+
+# 构建产物
+PlanCheck.app
+*.app
+*.framework
+*.dylib
+dist/
+build_output/
+build_xcode/
+release/
+Release-iphoneos/
+Release-iphonesimulator/
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Packages/
+Package.pins
+Package.resolved
+
+# CocoaPods
+Pods/
+*.xcconfig
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# 日志文件
+*.log
+planchecklogs/
+logs/
+
+# 测试和覆盖率
+coverage/
+*.gcno
+*.gcda
+*.gcov
+*.coverage
+*.profraw
+*.profdata
+profile/
+
+# 临时文件
+*.tmp
+*.swp
+*.swo
+*~
+*.temp
+.cache/
+.tmp/
+
+# 备份文件
+*.backup
+*.bak
+*.orig
+*.old
+*.full
+
+# 敏感信息和配置
+*.key
+*.secret
+*.pem
+*.crt
+*.cer
+*.p12
+*.pfx
+config.json
+settings.json
+Configuration.plist
+Secrets.swift
+*.plist
+.env
+.env.local
+.env.*.local
+.secrets/
+credentials/
+api_keys.txt
+
+# 用户数据（绝对不要提交）
+~/Library/Application Support/plancheck/
+*.json.backup
+UserData/
+user_data/
+
+# IDE 配置（个人特定）
+.idea/
+.vscode/
+*.iml
+*.sublime-project
+*.sublime-workspace
+Thumbs.db
+
+# 文档目录（只上传专业的技术文档）
+docs/01-需求/
+docs/02-设计/
+docs/99-临时日志/
+docs/drafts/
+docs/temp/
+docs/*.pdf
+docs/*.doc
+docs/*.docx
+
+# 开发调试工具
+*.patch
+.diff
+*.o
+*.a
+*.out
+*.exe
+*.dll
+*.so
+
+# Node.js (如果有 Web 相关工具)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Python (如果有脚本工具)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ruby (如果有 Fastlane 等工具)
+*.rbx
+Gemfile.lock
+.bundle/
+vendor/bundle/
+
+# 其他常见不需要文件
+*.DS_Store
+*.pem
+*.md5
+*.sha1
+*.txt~
+*.xlsx
+*.xls
+*.ppt
+*.pptx
+*.keynote
