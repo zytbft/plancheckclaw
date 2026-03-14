@@ -185,3 +185,9 @@ vendor/bundle/
 *.ppt
 *.pptx
 *.keynote
+
+# 临时脚本和报告（不上传）
+download_from_github.sh
+sync_from_github.sh
+GITHUB_PUSH_REPORT.md
+SYNC_COMPLETE_REPORT.md
