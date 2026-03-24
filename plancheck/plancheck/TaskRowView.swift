@@ -1,7 +1,11 @@
+import AppKit
 import SwiftUI
 
-struct TaskRowView: View, Equatable {
-    let task: TaskItem
+struct TaskRowView: View {
+    @ObservedObject var task: TaskItem
+    @State private var isHovering = false
+    @State private var showingEditSheet = false
+    @FocusState private var isFocused: Bool
     let isEditingMode: Bool
     let isSelected: Bool
     let onToggleSelection: () -> Void
@@ -11,22 +15,12 @@ struct TaskRowView: View, Equatable {
     let onToggleImportant: () -> Void
     let onToggleMyDay: () -> Void
     let onDelete: () -> Void
-    let onEdit: (String, Int, TaskContext, String?, Bool) -> Void
+    let onEdit: (String, Int, String, String, Bool) -> Void
     let onConfirmSingleDelete: (() -> Void)?
     let sunIconHelpText: String?
     let onCopy: (() -> Void)?
     let onTogglePinned: (() -> Void)?
-    
-    // MARK: - Equatable Conformance
-    static func == (lhs: TaskRowView, rhs: TaskRowView) -> Bool {
-        lhs.task.id == rhs.task.id &&
-        lhs.isEditingMode == rhs.isEditingMode &&
-        lhs.isSelected == rhs.isSelected &&
-        lhs.task.status == rhs.task.status &&
-        lhs.task.isImportant == rhs.task.isImportant &&
-        lhs.task.isInMyDay == rhs.task.isInMyDay &&
-        lhs.task.isPinned == rhs.task.isPinned
-    }
+
     @State private var showingCheckSheet = false
     @State private var showingEditSheet = false
     @FocusState private var isFocused: Bool
@@ -173,174 +167,119 @@ struct TaskRowView: View, Equatable {
                     .buttonStyle(.plain)
                     .help("删除任务")
                 }
+                // 优化：为按钮组添加右侧边距，避免与滚动条重叠
+                .padding(.trailing, 4)
             }
         }
+        // 优化：为整个任务行添加右侧安全边距，确保删除按钮不与滚动条重叠
+        .padding(.trailing, 8)
         .contextMenu {
             if task.status == .notStarted {
                 Button("开始任务", action: onStart)
-            } else if task.status == .inProgress {
-                Button("完成任务") {
-                    showingCheckSheet = true
-                }
-            } else {
-                Button("重新开始", action: onReopen)
-            }
 
-            Button(task.isImportant ? "取消重要标记" : "标记为重要", action: onToggleImportant)
-            Button(task.isInMyDay ? "从我的一天移除" : "加入我的一天", action: onToggleMyDay)
-            if let onTogglePinned = onTogglePinned {
-                Button(task.isPinned ? "取消置顶" : "置顶任务", action: onTogglePinned)
+                Menu("设置优先级") {
+                    ForEach(PriorityLevel.allCases) { level in
+                        Button(level.name) {
+                            taskStore.setPriority(taskID: task.id, level: level)
+                        }
+                    }
+                }
+
+                Divider()
+
+                Button("编辑任务") {
+                    showingEditSheet = true
+                }
+
+                Button("删除任务", role: .destructive) {
+                    onDelete()
+                }
+            } else if task.status == .inProgress {
+                Button("暂停任务") {
+                    onReopen()
+                }
+
+                Button("完成任务") {
+                    onComplete(Date(), .keepInMyDay)
+                }
+
+                Menu("设置优先级") {
+                    ForEach(PriorityLevel.allCases) { level in
+                        Button(level.name) {
+                            taskStore.setPriority(taskID: task.id, level: level)
+                        }
+                    }
+                }
+
+                Divider()
+
+                Button("编辑任务") {
+                    showingEditSheet = true
+                }
+
+                Button("删除任务", role: .destructive) {
+                    onDelete()
+                }
+            } else if task.status == .completed {
+                Button("重新打开") {
+                    onReopen()
+                }
+
+                Menu("设置优先级") {
+                    ForEach(PriorityLevel.allCases) { level in
+                        Button(level.name) {
+                            taskStore.setPriority(taskID: task.id, level: level)
+                        }
+                    }
+                }
+
+                Divider()
+
+                Button("编辑任务") {
+                    showingEditSheet = true
+                }
+
+                Button("删除任务", role: .destructive) {
+                    onDelete()
+                }
+            } else if task.status == .abandoned {
+                Button("重新打开") {
+                    onReopen()
+                }
+
+                Button("彻底删除", role: .destructive) {
+                    onDelete()
+                }
             }
-        }
-        .sheet(isPresented: $showingCheckSheet) {
-            CheckTaskView(task: task, onComplete: onComplete)
         }
         .sheet(isPresented: $showingEditSheet) {
-            EditTaskView(task: task, onSave: onEdit)
+            EditTaskView(
+                taskToEdit: task,
+                onSave: { title, minutes, context, notes, important in
+                    onEdit(title, minutes, context, notes, important)
+                },
+                isPresented: $showingEditSheet
+            )
+            .environmentObject(taskStore)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
+        )
+        .onTapGesture(count: 2) {
+            guard task.status.isPending else { return }
+            showingEditSheet = true
         }
     }
 
-    private var leadingStatusButton: some View {
-        Button(action: handleLeadingButtonTap) {
-            Image(systemName: leadingSymbolName)
-                .foregroundColor(leadingIconColor)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var statusCapsule: some View {
-        Text(task.status.title)
-            .font(.caption2)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(statusColor.opacity(0.15))
-            .foregroundColor(statusColor)
-            .clipShape(Capsule())
-    }
-
-    private var contextCapsule: some View {
-        Text(task.context.title)
-            .font(.caption2)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(contextColor(task.context).opacity(0.15))
-            .foregroundColor(contextColor(task.context))
-            .clipShape(Capsule())
-    }
-
-    private var priorityCapsule: some View {
-        HStack(spacing: 4) {
-            Image(systemName: priorityTierSymbol)
-                .font(.caption2)
-            Text("\(task.priorityTier) 级")
-                .font(.caption2)
-                .fontWeight(.medium)
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(priorityColor.opacity(0.15))
-        .foregroundColor(priorityColor)
-        .clipShape(Capsule())
-        .help(priorityTooltip)
-    }
-    
-    private var priorityTierSymbol: String {
-        switch task.priorityTier {
-        case PriorityTier.a.rawValue:
-            return "star.fill"
-        case PriorityTier.b.rawValue:
-            return "star.lefthalf.filled"
-        default:
-            return "circle"
-        }
-    }
-    
-    private var priorityTooltip: String {
-        guard let score = task.priorityScore else {
-            return "优先级：\(task.priorityTier)"
-        }
-        let reason = task.priorityReason ?? ""
-        return "优先级 \(task.priorityTier) · 分数 \(String(format: "%.2f", score))\n\(reason)"
-    }
-
-    private var leadingSymbolName: String {
-        if isEditingMode {
-            return isSelected ? "checkmark.circle.fill" : "circle"
-        }
-        switch task.status {
-        case .notStarted:
-            return "circle"
-        case .inProgress:
-            return "play.circle.fill"
-        case .completed:
-            return "checkmark.circle.fill"
-        case .abandoned:
-            return "xmark.circle.fill"
-        }
-    }
-
-    private var leadingIconColor: Color {
-        if isEditingMode {
-            return isSelected ? .blue : .gray
-        }
-        return statusColor
-    }
-
-    private var statusColor: Color {
-        switch task.status {
-        case .notStarted:
-            return .gray
-        case .inProgress:
-            return .orange
-        case .completed:
-            return .green
-        case .abandoned:
-            return .secondary
-        }
-    }
-
-    private var priorityColor: Color {
-        switch task.priorityTier {
-        case PriorityTier.a.rawValue:
-            return .red
-        case PriorityTier.b.rawValue:
-            return .orange
-        default:
-            return .secondary
-        }
-    }
-
-    private func handleLeadingButtonTap() {
-        if isEditingMode {
-            // 编辑模式：保持原有的选中/取消选中功能
-            onToggleSelection()
-            return
-        }
-
-        // 非编辑模式：在"待处理"和"进行中"之间切换状态
-        switch task.status {
-        case .notStarted:
-            // 从"待处理"切换到"进行中"
-            onStart()
-        case .inProgress:
-            // 从"进行中"切换回"待处理"
-            // 注意：这里使用 onReopen 回调，但实际逻辑应该是 pauseTask
-            // 需要在调用方（TodayView/AllTasksView）中区分
-            onReopen()
-        case .completed, .abandoned:
-            // 其他状态不响应点击
-            break
-        }
-    }
+    // MARK: - Helper Properties
 
     private var primaryActionTitle: String {
         switch task.status {
-        case .notStarted:
-            return "开始"
-        case .inProgress:
-            return "完成"
-        case .completed, .abandoned:
-            return "重新开始"
+        case .notStarted: return "开始"
+        case .inProgress: return "完成"
+        case .completed: return "完成"
+        case .abandoned: return "完成"
         }
     }
 
@@ -349,44 +288,186 @@ struct TaskRowView: View, Equatable {
         case .notStarted:
             onStart()
         case .inProgress:
-            showingCheckSheet = true
+            onComplete(Date(), .keepInMyDay)
         case .completed, .abandoned:
-            onReopen()
+            break
         }
     }
 
+    private var timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
+    private var detailTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
     private func diffString(_ actual: Int) -> String {
         let diff = actual - task.estimatedMinutes
-        return diff >= 0 ? "+\(diff)" : "\(diff)"
+        if diff > 0 {
+            return "+\(diff)"
+        } else if diff < 0 {
+            return "\(diff)"
+        } else {
+            return "±0"
+        }
     }
 
     private func diffColor(_ actual: Int) -> Color {
         let diff = actual - task.estimatedMinutes
-        if diff > 0 { return .red }
-        else if diff < 0 { return .green }
-        else { return .secondary }
-    }
-
-    private func contextColor(_ context: TaskContext) -> Color {
-        switch context {
-        case .deepWork:
-            return .blue
-        case .fragmented:
-            return .orange
-        case .meeting:
-            return .teal
+        if diff > 0 {
+            return .red
+        } else if diff < 0 {
+            return .green
+        } else {
+            return .secondary
         }
     }
 
-    private let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
+    @ViewBuilder
+    private var leadingStatusButton: some View {
+        if isEditingMode {
+            // 编辑模式：显示复选框
+            CheckboxView(isChecked: isSelected)
+                .frame(width: 20, height: 20)
+                .onTapGesture {
+                    onToggleSelection()
+                }
+        } else {
+            // 普通模式：根据状态显示不同按钮
+            switch task.status {
+            case .notStarted:
+                Circle()
+                    .strokeBorder(Color.gray, lineWidth: 2)
+                    .frame(width: 20, height: 20)
+                    .onTapGesture {
+                        onStart()
+                    }
+            case .inProgress:
+                Button(action: {
+                    onComplete(Date(), .keepInMyDay)
+                }) {
+                    Image(systemName: "play.fill")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 12, height: 12)
+                        .foregroundColor(.white)
+                }
+                .buttonStyle(.plain)
+                .background(Circle().fill(Color.orange).frame(width: 20, height: 20))
+                .help("完成任务")
+            case .completed:
+                Button(action: onReopen) {
+                    Image(systemName: "checkmark")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 12, height: 12)
+                        .foregroundColor(.white)
+                }
+                .buttonStyle(.plain)
+                .background(Circle().fill(Color.green).frame(width: 20, height: 20))
+                .help("重新打开")
+            case .abandoned:
+                Circle()
+                    .strokeBorder(Color.gray, lineWidth: 2)
+                    .frame(width: 20, height: 20)
+                    .onTapGesture {
+                        onReopen()
+                    }
+            }
+        }
+    }
 
-    private let detailTimeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        return formatter
-    }()
+    @ViewBuilder
+    private var statusCapsule: some View {
+        Capsule()
+            .fill(statusColor)
+            .frame(height: 22)
+            .overlay(
+                HStack(spacing: 4) {
+                    Image(systemName: statusIcon)
+                    Text(statusText)
+                }
+                .font(.caption2)
+                .foregroundColor(.white)
+                .padding(.horizontal, 8)
+            )
+    }
+
+    private var statusColor: Color {
+        switch task.status {
+        case .notStarted: return .gray
+        case .inProgress: return .orange
+        case .completed: return .green
+        case .abandoned: return .secondary
+        }
+    }
+
+    private var statusIcon: String {
+        switch task.status {
+        case .notStarted: return "circle"
+        case .inProgress: return "play.fill"
+        case .completed: return "checkmark.circle.fill"
+        case .abandoned: return "slash.circle"
+        }
+    }
+
+    private var statusText: String {
+        switch task.status {
+        case .notStarted: return "待处理"
+        case .inProgress: return "进行中"
+        case .completed: return "已完成"
+        case .abandoned: return "已放弃"
+        }
+    }
+
+    @ViewBuilder
+    private var contextCapsule: some View {
+        if !task.context.isEmpty {
+            Capsule()
+                .fill(Color.blue.opacity(0.2))
+                .frame(height: 22)
+                .overlay(
+                    HStack(spacing: 4) {
+                        Image(systemName: "briefcase.fill")
+                        Text(task.context)
+                    }
+                    .font(.caption2)
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 8)
+                )
+        }
+    }
+
+    @ViewBuilder
+    private var priorityCapsule: some View {
+        if let priority = task.priority {
+            Capsule()
+                .fill(priorityColor(priority))
+                .frame(height: 22)
+                .overlay(
+                    HStack(spacing: 4) {
+                        Image(systemName: "flag.fill")
+                        Text(priority.name)
+                    }
+                    .font(.caption2)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                )
+        }
+    }
+
+    private func priorityColor(_ priority: PriorityLevel) -> Color {
+        switch priority {
+        case .low: return .blue
+        case .medium: return .orange
+        case .high: return .red
+        }
+    }
 }
