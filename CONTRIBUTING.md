@@ -36,6 +36,7 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 * Include comments in your code where necessary
 * Update documentation as needed
 * Test your changes thoroughly
+* **Use MCP GitHub tool for commits**: This project uses the MCP GitHub tool (`mcp_github_push_files`) to submit code changes instead of traditional Git commands
 
 ## Development Setup
 
@@ -50,8 +51,8 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/zytbft/plancheckclaw.git
-   cd plancheckclaw
+   git clone https://github.com/YOUR_USERNAME/plancheck.git
+   cd plancheck
    ```
 
 3. Open in Xcode:
@@ -64,10 +65,51 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
    - Press Cmd+B to build
    - Press Cmd+R to run
 
+### Code Submission Workflow
+
+**Important**: This project uses the MCP GitHub tool for all code submissions.
+
+#### Using MCP GitHub Tool (Required)
+
+All code changes must be submitted using the `mcp_github_push_files` function:
+
+```typescript
+// Example usage in AI assistant context
+await mcp_github_push_files({
+  owner: "zytbft",
+  repo: "plancheckclaw",
+  branch: "main",
+  files: [
+    {
+      path: "plancheck/plancheck/YourFile.swift",
+      content: "// Your code here"
+    }
+  ],
+  message: "feat: description of your changes"
+});
+```
+
+**Why MCP GitHub Tool?**
+- ✅ Ensures consistent commit history
+- ✅ Automated validation and testing
+- ✅ Integrated with AI assistant workflow
+- ✅ Proper file tracking and diff management
+
+#### Traditional Git Commands (Not Recommended)
+
+For emergency situations or when MCP tool is unavailable:
+
+```bash
+# Only use when MCP tool fails
+git add <files>
+git commit -m "description"
+git push origin main
+```
+
 ### Building from Command Line
 
 ```bash
-cd /path/to/plancheckclaw
+cd /path/to/plancheck
 ./build_tools/final_build.sh
 ```
 
@@ -81,37 +123,47 @@ cd /path/to/plancheckclaw
 * Use type inference where appropriate
 * Keep functions small and focused
 * Use meaningful variable and function names
-* Add comments for complex logic
 
-### File Organization
+### Code Organization
 
-* One class/struct per file
-* Group related functionality into extensions
-* Separate UI code from business logic
-* Use consistent naming conventions
+* Group related functionality together
+* Use extensions to organize code
+* Keep files under 500 lines when possible
+* Use MARK comments to organize sections
 
-### Testing
+### Documentation
 
-* Write unit tests for business logic
-* Add UI tests for critical user flows
-* Ensure all tests pass before submitting PR
-* Aim for high code coverage
+* Comment complex logic
+* Update README.md if adding new features
+* Document public APIs
+* Include usage examples
 
-## Documentation
+## Testing
 
-* Update README.md for user-facing changes
-* Add inline comments for complex code
-* Update API documentation if needed
-* Include migration guides for breaking changes
+* Write tests for new features
+* Ensure existing tests pass
+* Test edge cases
+* Manual testing is also important
+
+### Running Tests
+
+```bash
+xcodebuild test -project plancheck/plancheck.xcodeproj -scheme plancheck
+```
 
 ## Release Process
 
-1. Create release branch
-2. Update version numbers
-3. Generate changelog
-4. Create GitHub release
-5. Build and distribute binaries
+1. Version numbers follow semantic versioning (MAJOR.MINOR.PATCH)
+2. Update version number in Info.plist
+3. Update CHANGELOG.md
+4. Create a git tag
+5. Build release version
+6. Publish on GitHub Releases
 
----
+## Questions?
 
-Thank you for your contribution to PlanCheck!
+Feel free to open an issue with the "question" label if you have any questions about contributing.
+
+## Thank You!
+
+Your contributions to open source, large or small, make projects like this possible. Thank you for taking the time to contribute.
