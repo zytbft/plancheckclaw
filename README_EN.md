@@ -1,251 +1,148 @@
-# PlanCheck - Intelligent Time Management for macOS
+# PlanCheck - macOS Task Management Tool
 
-[![Platform](https://img.shields.io/badge/platform-macOS%2015.0+-blue)]()
-[![Swift](https://img.shields.io/badge/Swift-5.10-orange)]()
-[![License](https://img.shields.io/badge/license-AGPL--3.0-green)]()
+[![Platform](https://img.shields.io/badge/platform-macOS%2015.0+-blue.svg)](https://developer.apple.com/macos/)
+[![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-> 🎯 Focus on "Planned vs Actual" time tracking, with AI-powered task prioritization and automated reviews.
+## 📖 Introduction
 
-**License**: [AGPL-3.0](LICENSE) - Protects your work. Any modifications must be open-sourced under the same license.
+PlanCheck is a lightweight task management application designed for macOS, built with pure SwiftUI, supporting iCloud synchronization and local file synchronization.
 
-<p align="center">
-    <picture>
-        <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/zytbft/plancheckclaw/main/assets/icon/AppIcon-1024.png">
-        <img src="https://raw.githubusercontent.com/zytbft/plancheckclaw/main/assets/icon/AppIcon-1024.png" alt="PlanCheck" width="200">
-    </picture>
-</p>
+### ✨ Key Features
 
-## ✨ Key Features
-
-### 📋 Smart Task Management
-- **Time Boxing**: Plan duration vs actual tracking with deviation analysis
-- **AI Prioritization**: 5-dimensional scoring model (amount, days-to-cash, success rate, leverage, strategic fit)
-- **Context-Aware**: Deep work / Fragment tasks / Meetings
-- **Bulk Operations**: Multi-select, bulk delete, bulk abandon with undo
-- **Smart Sorting**: New tasks auto-insert after started tasks, before pending tasks
-
-### 🤖 Automation & Intelligence
-- **Auto Timer**: Track start/end times automatically
-- **Keyboard Shortcuts**: Command+S to save, Command+Enter to complete
-- **Midnight Carry-Over**: Unfinished tasks auto-move to next day
-- **Intelligent Suggestions**: Time estimates, priority scores, top 3 must-do tasks
-
-### 📊 Analytics & Reviews
-- **Daily Reviews**: Energy tracking, deviation analysis, improvement plans
-- **Weekly Reports**: Completion rate, top 5 time-consuming tasks, status distribution
-- **Export**: CSV/Markdown/JSON formats
-
-### 🔒 Data Security
-- **Local First**: No cloud, no account required
-- **iCloud Sync**: Optional end-to-end encrypted sync
-- **Folder Backup**: Custom backup directory support
-- **Trash & Recovery**: 30-day auto-cleanup with recovery option
+- **Smart Task Management**: Complete functionality for task creation, editing, deletion, pinning
+- **Flexible Date Strategy**: Automatic carry-over of incomplete tasks with customizable day limits
+- **iCloud Real-time Sync**: Automatic data synchronization across multiple devices
+- **Local File Sync**: Support for third-party cloud drives like iCloud Drive / OneDrive / Jiguanyun
+- **AI Auto Review**: Support for GLM-5 cloud model and Ollama local model
+- **Batch Operations**: Mouse multi-selection, select all, slide selection and more
+- **External Tool Integration**: Automatically call AI coding tools like Codex/Trae/CloudCode/OpenClaw
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- macOS 15.0+ (Apple Silicon recommended)
-- Xcode 16.0+
+### System Requirements
 
-### Build from Source
+- macOS 15.0 or later
+- Xcode 16.0+ (if you need to compile yourself)
+
+### Installation Methods
+
+#### Method 1: Pre-compiled Application
+
+1. Download `PlanCheck_v2.4.dmg`
+2. Drag to Applications folder
+3. Launch the app
+
+#### Method 2: Self-compile
+
 ```bash
-git clone https://github.com/YOUR_USERNAME/plancheck.git
-cd plancheck
-./build_tools/final_build.sh
+# Use recommended build script
+cd /path/to/plancheckCodexLingma
+bash build_tools/final_build.sh
 ```
 
-### Run the App
+After compilation, `PlanCheck.app` will be generated in the project root directory
+
+## 🔧 Build Instructions
+
+### Using final_build.sh (Recommended)
+
+This is the simplest and most direct compilation method, no Xcode project file needed:
+
 ```bash
-open PlanCheck.app
+bash build_tools/final_build.sh
 ```
 
-## 🏗️ Architecture Highlights
+This script will:
+1. Compile all Swift source files using swiftc
+2. Automatically handle dependency frameworks (SwiftUI, UserNotifications)
+3. Create application bundle structure
+4. Copy application icon
+5. Perform code signing
+6. Automatically open the application
 
-### Modular Design (v2.4)
-- **TaskStore Protocol**: Clean architecture with protocol-oriented programming
-- **7 Modules**: Split 1667-line monolith into focused extensions
-  - `TaskStore.swift` - Core framework & initialization
-  - `TaskStore+Tasks.swift` - Task CRUD operations
-  - `TaskStore+Reviews.swift` - Review management
-  - `TaskStore+DeletedTasks.swift` - Trash logic
-  - `TaskStore+Sync.swift` - iCloud & folder sync
-  - `TaskStore+MidnightCarry.swift` - Auto carry-over
-  - `TaskStoreProtocol.swift` - Protocol definition
+### Other Build Documentation
 
-### AI Integration
-- **LLM Support**: GLM-5 / Ollama local models
-- **Priority Inference**: Task title analysis with audit trail
-- **Fallback**: Rule-based engine when AI unavailable
+- [BUILD_GUIDE.md](build_tools/BUILD_GUIDE.md) - Detailed build guide
+- [QUICK_START.md](build_tools/QUICK_START.md) - Quick start guide
+- [MIGRATION_REPORT.md](build_tools/MIGRATION_REPORT.md) - Migration report
 
-## 📊 Current Capabilities vs Future Roadmap
+## 📁 Project Structure
 
-### ✅ Latest: v2.4.20 - Incomplete Task Carry-Over Strategy Optimization
-- 🎯 **Smart Task Carry-Over**:
-  - Original tasks automatically marked as "Abandoned" after carrying over to Today, avoiding duplicates in All Tasks view
-  - Tracks cumulative carry-over count for each task, stops auto-carry when reaching limit
-  - Optimized All Tasks filters: "All" shows only active tasks, "Abandoned" displays carry-over history
-  - Detailed logging for debugging and verification
-- 📝 **Modified Files**: TaskStore+Tasks.swift (+6 lines), AllTasksView.swift (+6 lines)
-- 📄 **New Documentation**: V2.4.20_CARRY_OVER_STRATEGY_OPTIMIZATION.md
+```
+plancheckCodexLingma/
+├── plancheck/plancheck/     # Main source code
+│   ├── plancheckApp.swift   # App entry point
+│   ├── ContentView.swift    # Main interface
+│   ├── TodayView.swift      # Today view
+│   ├── AllTasksView.swift   # All tasks
+│   ├── SettingsView.swift   # Settings page
+│   ├── TaskStore.swift      # Data storage
+│   └── ...
+├── build_tools/             # Build scripts
+│   └── final_build.sh       # Recommended build script
+├── docs/                    # Project documentation
+├── assets/icon/            # App icon
+└── README.md               # This file
+```
 
-### ✅ What PlanCheck Can Do NOW
+## 🎯 Main Features
 
-#### 🤖 Agent-Automatable Tasks (No Human Intervention)
-1. **Time Tracking**
-   - Auto-start timer when task begins
-   - Auto-calculate actual duration
-   - Auto-detect overtime and suggest actions
+### 1. Task Management
+- ✅ Create tasks: Support title, estimated time, context, notes
+- ✅ Edit tasks: Double-click or right-click to edit
+- ✅ Delete tasks: Recycle to trash, auto-clean after 30 days
+- ✅ Pin tasks: Important tasks pinned to top
+- ✅ Batch operations: Multi-selection, select all, batch complete/delete
 
-2. **Task Management**
-   - Auto-sort by priority score
-   - Auto-insert new tasks at optimal position
-   - Auto-carry unfinished tasks to next day (midnight)
-   - Auto-suggest estimated duration based on history
+### 2. View Categories
+- 📅 **Today View**: Tasks created and carried over today
+- 📋 **All Tasks**: View all historical tasks
+- ⭐ **Important Tasks**: View pinned tasks
+- 🗑️ **Trash**: View deleted tasks
 
-3. **Data Analysis**
-   - Auto-generate daily review templates
-   - Auto-calculate weekly statistics
-   - Auto-export reports in multiple formats
+### 3. Data Synchronization
+- ☁️ **iCloud Sync**: Real-time sync to iCloud, multi-device support
+- 📂 **Local File Sync**: Custom sync directory (for iCloud Drive / OneDrive / Jiguanyun)
+- 💾 **Data Import/Export**: Support importing task data from backup files
 
-4. **Intelligent Suggestions**
-   - Suggest task priority (A/B/C tier)
-   - Suggest time estimates from historical median
-   - Suggest top 3 must-do tasks for today
+### 4. Automation
+- 🤖 **Auto Review**: Daily/weekly automatic review of task completion
+- 🔌 **External Tool Integration**: Automatically call AI coding tools after starting tasks
+- ⏰ **Midnight Auto Carry-over**: Automatically carry over incomplete tasks to next day at midnight
 
-#### 👤 Human-Required Tasks (User Decision Needed)
-1. **Task Creation**
-   - Define what tasks to do
-   - Estimate initial duration (can accept AI suggestion)
-   - Set task context and importance
+## 🛠️ Tech Stack
 
-2. **State Transitions**
-   - Decide when to START a task
-   - Decide when to COMPLETE a task
-   - Decide to ABANDON a task
+- **Language**: Swift 6.0
+- **Frameworks**: SwiftUI, UserNotifications
+- **Architecture**: MVVM
+- **Data Persistence**: JSON file storage
+- **Sync Mechanism**: iCloud + local file sync
 
-3. **Review & Reflection**
-   - Provide energy level (high/medium/low)
-   - Analyze deviation reasons
-   - Plan improvements for tomorrow
+## 📝 Development Standards
 
-4. **Priority Override**
-   - Accept or reject AI priority suggestions
-   - Manually mark tasks as important
-   - Pin critical tasks to top
+### Build Requirements
 
-### 🚀 What PlanCheck Will Do in FUTURE (Agent 2.0)
+- **Only Recommended**: Use `build_tools/final_build.sh` for compilation
+- **Do Not Use**: Xcode project file compilation (xcodebuild)
+- **Reason**: Project uses modular architecture, direct swiftc compilation is simpler and more efficient
 
-#### 🎯 Full Agent Mode (PlanCheckClaw)
-1. **Automatic Task Capture**
-   - Monitor emails/calendar for action items
-   - Extract tasks from meeting notes
-   - Parse chat messages (Slack/Feishu) for todos
+### Git Workflow
 
-2. **Intelligent Planning**
-   - Auto-schedule tasks based on energy patterns
-   - Auto-block calendar for deep work sessions
-   - Auto-negotiate deadlines with stakeholders
-
-3. **Proactive Execution**
-   - Start routine tasks automatically (e.g., daily standup prep)
-   - Batch similar tasks together
-   - Auto-delegate tasks to team members
-
-4. **Learning & Adaptation**
-   - Learn from user behavior patterns
-   - Improve time estimates over time
-   - Predict task blockers and risks
-
-## 💰 Monetization Strategy
-
-### Free Tier (Open Source)
-- ✅ All core task management features
-- ✅ Local data storage
-- ✅ Basic analytics
-- ✅ Keyboard shortcuts
-- ✅ Bulk operations
-
-### Pro Tier ($9.99/month or $99/year)
-- 🌟 AI Priority Engine (unlimited LLM calls)
-- 🌟 Advanced analytics & insights
-- 🌟 Custom themes & branding
-- 🌟 Priority support
-- 🌟 Team collaboration features
-
-### Enterprise Tier (Custom Pricing)
-- 🏢 Self-hosted deployment
-- 🏢 SSO & SAML integration
-- 🏢 Admin dashboard
-- 🏢 Audit logs & compliance
-- 🏢 Custom integrations (Jira, Asana, etc.)
-
-## 🛣️ Roadmap to Profitability
-
-### Phase 1: Portfolio Showcase (Q2 2026)
-- [x] MVP with core features
-- [x] Clean modular architecture
-- [ ] GitHub stars > 100
-- [ ] Case study blog posts
-- [ ] Conference talks submissions
-
-### Phase 2: Community Building (Q3 2026)
-- [ ] Launch landing page
-- [ ] Collect user feedback
-- [ ] Build contributor community
-- [ ] Add plugin system
-- [ ] Create tutorial videos
-
-### Phase 3: Freemium Launch (Q4 2026)
-- [ ] Implement licensing system
-- [ ] Add Pro features
-- [ ] Set up payment processing
-- [ ] Marketing campaign
-- [ ] First 100 paying users
-
-### Phase 4: Scale & Expand (2027)
-- [ ] iOS/iPad version
-- [ ] Team features
-- [ ] API for 3rd party integrations
-- [ ] Marketplace for templates
-- [ ] Partnership with productivity tools
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Development Setup
-1. Fork the repo
-2. Create a feature branch
-3. Make your changes
-4. Run tests (if applicable)
-5. Submit a pull request
+- Main branch: `main`
+- Ensure compilation passes before committing
+- Commit messages should clearly describe changes
 
 ## 📄 License
 
-This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** - see the [LICENSE](LICENSE) file for details.
-
-### What This Means:
-
-✅ **You can**:
-- Use PlanCheck for personal or commercial purposes
-- Modify the source code
-- Distribute copies
-
-⚠️ **But you must**:
-- Open-source any modifications under AGPL-3.0
-- Provide source code to users (even for SaaS)
-- Credit the original authors
-
-💼 **Need a commercial license**? Contact us for dual licensing options.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- Built with SwiftUI for macOS
-- Inspired by Getting Things Done (GTD) methodology
-- Community feedback and contributions
+Thanks to all developers and users who have contributed to PlanCheck!
 
 ---
 
-**Made with ❤️ by PlanCheck Team**
-
-[Website](https://plancheck.app) | [Twitter](https://twitter.com/plancheckapp) | [Discord](https://discord.gg/plancheck)
+**Development Time**: 2025-2026  
+**Maintainer**: zytbft  
+**GitHub**: [plancheckclaw](https://github.com/zytbft/plancheckclaw)
