@@ -2,7 +2,7 @@
 
 轻量级 macOS 时间管理应用，聚焦「计划时长 vs 实际时长」复盘，支持每日任务管理、状态流转、未完成任务处理与周报导出。
 
-![plancheck app icon](https://raw.githubusercontent.com/zytbft/plancheckclaw/main/assets/icon/AppIcon-1024.png)
+![plancheck app icon](https://raw.githubusercontent.com/zytbft/plancheckclaw/main/assets/icon/AppIcon-1024.png?raw=true)
 
 **开源协议**: [AGPL-3.0](LICENSE) - 保护您的工作成果，任何修改和衍生作品必须同样开源
 
