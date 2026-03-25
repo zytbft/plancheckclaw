@@ -1,11 +1,7 @@
-import AppKit
 import SwiftUI
 
-struct TaskRowView: View {
-    @ObservedObject var task: TaskItem
-    @State private var isHovering = false
-    @State private var showingEditSheet = false
-    @FocusState private var isFocused: Bool
+struct TaskRowView: View, Equatable {
+    let task: TaskItem
     let isEditingMode: Bool
     let isSelected: Bool
     let onToggleSelection: () -> Void
@@ -15,12 +11,24 @@ struct TaskRowView: View {
     let onToggleImportant: () -> Void
     let onToggleMyDay: () -> Void
     let onDelete: () -> Void
-    let onEdit: (String, Int, String, String, Bool) -> Void
+    let onEdit: (String, Int, TaskContext, String?, Bool) -> Void
     let onConfirmSingleDelete: (() -> Void)?
     let sunIconHelpText: String?
     let onCopy: (() -> Void)?
     let onTogglePinned: (() -> Void)?
-
+    
+    // MARK: - Equatable Conformance
+    static func == (lhs: TaskRowView, rhs: TaskRowView) -> Bool {
+        lhs.task.id == rhs.task.id &&
+        lhs.task.title == rhs.task.title &&
+        lhs.task.estimatedMinutes == rhs.task.estimatedMinutes &&
+        lhs.task.context == rhs.task.context &&
+        lhs.task.notes == rhs.task.notes &&
+        lhs.task.status == rhs.task.status &&
+        lhs.task.isImportant == rhs.task.isImportant &&
+        lhs.task.isInMyDay == rhs.task.isInMyDay &&
+        lhs.task.isPinned == rhs.task.isPinned
+    }
     @State private var showingCheckSheet = false
     @State private var showingEditSheet = false
     @FocusState private var isFocused: Bool
