@@ -20,7 +20,8 @@ extension TaskStore {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
         guard tasks[index].status.isPending else { return }
         
-        // 创建新实例以触发 SwiftUI 视图刷新
+        // 关键修复：创建新实例并重新赋值整个数组
+        // 原因：TaskItem 是遵循 Equatable 的 struct，直接替换元素可能不会触发 @Published 通知
         var updatedTask = tasks[index]
         updatedTask.title = trimmed
         updatedTask.estimatedMinutes = estimatedMinutes
@@ -29,30 +30,37 @@ extension TaskStore {
         updatedTask.isImportant = isImportant
         updatedTask.updatedAt = Date()
         
-        // 替换整个任务对象，触发 @Published 通知
+        // 重新赋值整个数组，确保触发 @Published 的 willSet/didSet
         tasks[index] = updatedTask
+        let currentTasks = tasks  // 创建副本
+        tasks = currentTasks      // 重新赋值，强制触发通知
+        
         persist()
     }
     
     /// 切换任务的重要状态
     func toggleImportant(taskID: UUID) {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
-        // 创建新实例以触发 SwiftUI 视图刷新
+        // 创建新实例并重新赋值整个数组以触发刷新
         var updatedTask = tasks[index]
         updatedTask.isImportant.toggle()
         updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
+        let currentTasks = tasks
+        tasks = currentTasks
         persist()
     }
 
     /// 切换任务的置顶状态
     func togglePinned(taskID: UUID) {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
-        // 创建新实例以触发 SwiftUI 视图刷新
+        // 创建新实例并重新赋值整个数组以触发刷新
         var updatedTask = tasks[index]
         updatedTask.isPinned.toggle()
         updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
+        let currentTasks = tasks
+        tasks = currentTasks
         persist()
     }
 
@@ -60,11 +68,13 @@ extension TaskStore {
     func addToMyDay(taskID: UUID) {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
         guard !tasks[index].isInMyDay else { return }
-        // 创建新实例以触发 SwiftUI 视图刷新
+        // 创建新实例并重新赋值整个数组以触发刷新
         var updatedTask = tasks[index]
         updatedTask.isInMyDay = true
         updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
+        let currentTasks = tasks
+        tasks = currentTasks
         persist()
     }
     
@@ -72,22 +82,26 @@ extension TaskStore {
     func removeFromMyDay(taskID: UUID) {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
         guard tasks[index].isInMyDay else { return }
-        // 创建新实例以触发 SwiftUI 视图刷新
+        // 创建新实例并重新赋值整个数组以触发刷新
         var updatedTask = tasks[index]
         updatedTask.isInMyDay = false
         updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
+        let currentTasks = tasks
+        tasks = currentTasks
         persist()
     }
     
     /// 更新任务的 createdAt 时间（用于调整排序）
     func updateTaskCreatedAt(taskID: UUID, to newDate: Date) {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
-        // 创建新实例以触发 SwiftUI 视图刷新
+        // 创建新实例并重新赋值整个数组以触发刷新
         var updatedTask = tasks[index]
         updatedTask.createdAt = newDate
         updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
+        let currentTasks = tasks
+        tasks = currentTasks
         persist()
     }
     
@@ -103,6 +117,8 @@ extension TaskStore {
         updatedTask.startedAt = Date()
         updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
+        let currentTasks = tasks
+        tasks = currentTasks
         persist()
     }
     
@@ -117,6 +133,8 @@ extension TaskStore {
         updatedTask.actualMinutes = calculateActualMinutes(for: updatedTask)
         updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
+        let currentTasks = tasks
+        tasks = currentTasks
         
         // 处理超时逻辑
         handleOvertime(sourceTask: updatedTask, actualMinutes: updatedTask.actualMinutes ?? 0, overtimeAction: overtimeAction)
@@ -135,6 +153,8 @@ extension TaskStore {
         updatedTask.actualMinutes = nil
         updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
+        let currentTasks = tasks
+        tasks = currentTasks
         persist()
     }
     
@@ -148,6 +168,8 @@ extension TaskStore {
         updatedTask.startedAt = nil
         updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
+        let currentTasks = tasks
+        tasks = currentTasks
         persist()
     }
     
