@@ -1,5 +1,6 @@
 # ============================================
 # PlanCheck GitHub 开源项目 - 完整 .gitignore
+# 最后更新：2026-03-31
 # ============================================
 
 # macOS 系统文件
@@ -87,6 +88,11 @@ profile/
 .cache/
 .tmp/
 
+# 个人记忆和反思（私人笔记，不上传）
+memory/
+*.md.backup
+reflections/
+
 # 备份文件
 *.backup
 *.bak
@@ -123,20 +129,29 @@ user_data/
 # IDE 配置（个人特定）
 .idea/
 .vscode/
+!.vscode/extensions.json
 *.iml
 *.sublime-project
 *.sublime-workspace
 Thumbs.db
 
-# 文档目录（只上传专业的技术文档）
+# 文档目录（只保留核心文档，其他不上传）
 docs/01-需求/
 docs/02-设计/
+docs/03-实现报告/
+docs/04-构建指南/
 docs/99-临时日志/
-docs/drafts/
-docs/temp/
+docs/*.html
 docs/*.pdf
 docs/*.doc
 docs/*.docx
+docs/*.keynote
+!docs/README.md
+
+# 截图和录屏（可选，如果需要展示可以保留）
+# Screenshot*.png
+# Screen Recording*.mov
+# images/screenshot*
 
 # 开发调试工具
 *.patch
@@ -166,7 +181,12 @@ ENV/
 *.egg-info/
 .pytest_cache/
 .coverage
-htmlcov/
+
+# 个人开发脚本和工具（不上传）
+scripts/
+*.py
+*.sh
+!build_project.sh
 
 # Ruby (如果有 Fastlane 等工具)
 *.rbx
@@ -185,9 +205,3 @@ vendor/bundle/
 *.ppt
 *.pptx
 *.keynote
-
-# 临时脚本和报告（不上传）
-download_from_github.sh
-sync_from_github.sh
-GITHUB_PUSH_REPORT.md
-SYNC_COMPLETE_REPORT.md
