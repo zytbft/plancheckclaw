@@ -1,8 +1,141 @@
 import Foundation
 
-// MARK: - Task Update Operations
-
+// MARK: - Task Operations Extension
 extension TaskStore {
+    
+    // MARK: - Helper Methods (Private)
+    
+    /// 持久化任务数据
+    func persist() {
+        do {
+            let dir = taskFileURL.deletingLastPathComponent()
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let data = try encoder.encode(tasks)
+            try data.write(to: taskFileURL, options: .atomic)
+            syncToICloudIfNeeded()
+        } catch {
+            print("保存任务数据失败：\(error.localizedDescription)")
+        }
+    }
+    
+    /// 根据历史数据建议任务的预估时间
+    func suggestedEstimatedMinutes(for title: String) -> Int? {
+        let key = TaskItem.normalizedCategoryKey(title)
+        guard !key.isEmpty else { return nil }
+        
+        let sameCategory = tasks.filter {
+            TaskItem.normalizedCategoryKey($0.title) == key
+        }
+        guard !sameCategory.isEmpty else { return nil }
+        
+        let completedActuals =
+            sameCategory
+            .filter { $0.status == .completed }
+            .compactMap(\.actualMinutes)
+            .filter(TaskItem.isValidMinutes)
+        
+        let candidates =
+            completedActuals.isEmpty
+            ? sameCategory.map(\.estimatedMinutes).filter(TaskItem.isValidMinutes)
+            : completedActuals
+        
+        return medianMinutes(candidates)
+    }
+    
+    /// 计算中位数分钟数
+    private func medianMinutes(_ values: [Int]) -> Int? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        let mid = sorted.count / 2
+        if sorted.count % 2 == 1 {
+            return sorted[mid]
+        }
+        let average = Double(sorted[mid - 1] + sorted[mid]) / 2.0
+        return Int(average.rounded())
+    }
+    
+    /// 检查任务是否已被转入到指定日期
+    func hasBeenCarriedOverToDate(originTask: TaskItem, date: Date) -> Bool {
+        let calendar = Calendar.current
+        if let carriedDate = originTask.lastCarriedOverAt,
+            calendar.isDate(carriedDate, inSameDayAs: date)
+        {
+            return true
+        }
+        
+        return tasks.contains {
+            $0.sourceTaskID == originTask.id && calendar.isDate($0.createdAt, inSameDayAs: date)
+        }
+    }
+    
+    /// 计算状态优先级数值
+    private func priority(for status: TaskProgressStatus) -> Int {
+        switch status {
+        case .inProgress:
+            return 0
+        case .notStarted:
+            return 1
+        case .completed:
+            return 2
+        case .abandoned:
+            return 3
+        }
+    }
+    
+    /// 计算日期索引
+    private func dayIndex(for date: Date) -> Int {
+        Int(Calendar.current.startOfDay(for: date).timeIntervalSince1970 / 86_400)
+    }
+    
+    // MARK: - Add Tasks
+    
+    // MARK: - Add Tasks
+    
+    /// 添加新任务
+    func addTask(
+        title: String,
+        estimatedMinutes: Int,
+        context: TaskContext = .deepWork,
+        notes: String? = nil,
+        isImportant: Bool = false
+    ) {
+        let trimmed = TaskItem.normalizedTitle(title)
+        guard !trimmed.isEmpty, TaskItem.isValidMinutes(estimatedMinutes) else { return }
+        let task = TaskItem(
+            title: trimmed,
+            estimatedMinutes: estimatedMinutes,
+            context: context,
+            notes: notes,
+            isImportant: isImportant
+        )
+        
+        // 找到合适的插入位置：置顶任务和已开始任务的后面
+        let insertIndex = findInsertIndex(for: task)
+        tasks.insert(task, at: insertIndex)
+        
+        persist()
+    }
+    
+    /// 找到新任务的合适插入位置
+    private func findInsertIndex(for newTask: TaskItem) -> Int {
+        // 遍历现有任务，找到第一个既不是置顶也不是已开始的任务位置
+        for (index, existingTask) in tasks.enumerated() {
+            // 如果当前任务是置顶或已开始的，新任务应该在其后面
+            if existingTask.isPinned || existingTask.status == .inProgress {
+                continue
+            }
+            // 找到了第一个非置顶、非已开始的任务，插在前面
+            return index
+        }
+        // 如果所有任务都是置顶或已开始的，或者没有任务，则添加到末尾
+        return tasks.count
+    }
+    
+    /// 从模板或其他来源添加任务（不检查重复）
+    func addTaskFromTemplate(_ task: TaskItem) {
+        tasks.append(task)
+        persist()
+    }
     
     // MARK: - Update Tasks
     
@@ -20,20 +153,41 @@ extension TaskStore {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
         guard tasks[index].status.isPending else { return }
         
-        // 关键修复：创建新实例并重新赋值整个数组
-        // 原因：TaskItem 是遵循 Equatable 的 struct，直接替换元素可能不会触发 @Published 通知
-        var updatedTask = tasks[index]
-        updatedTask.title = trimmed
-        updatedTask.estimatedMinutes = estimatedMinutes
-        updatedTask.context = context
-        updatedTask.notes = TaskItem.normalizedNotes(notes)
-        updatedTask.isImportant = isImportant
-        updatedTask.updatedAt = Date()
+        // ✅ 创建新的 TaskItem 对象来替换原对象
+        let originalTask = tasks[index]
+        var updatedTask = TaskItem(
+            title: trimmed,
+            estimatedMinutes: estimatedMinutes,
+            createdAt: originalTask.createdAt,
+            sourceTaskID: originalTask.sourceTaskID,
+            carryOverCount: originalTask.carryOverCount,
+            context: context,
+            status: originalTask.status,
+            notes: TaskItem.normalizedNotes(notes),
+            isImportant: isImportant,
+            isPinned: originalTask.isPinned,
+            isInMyDay: originalTask.isInMyDay,
+            startedAt: originalTask.startedAt,
+            endedAt: originalTask.endedAt,
+            expectedCashInRMB: originalTask.expectedCashInRMB,
+            expectedDaysToCash: originalTask.expectedDaysToCash,
+            successProbability: originalTask.successProbability,
+            leverageScore: originalTask.leverageScore,
+            strategicFitScore: originalTask.strategicFitScore,
+            priorityScore: originalTask.priorityScore,
+            priorityTier: originalTask.priorityTier,
+            priorityReason: originalTask.priorityReason,
+            priorityUpdatedAt: originalTask.priorityUpdatedAt
+        )
         
-        // 重新赋值整个数组，确保触发 @Published 的 willSet/didSet
+        // ✅ 手动设置 ID 以保持与原任务一致
+        updatedTask.id = originalTask.id
+        
+        // ✅ 替换整个对象以触发 @Published 通知
         tasks[index] = updatedTask
-        let currentTasks = tasks  // 创建副本
-        tasks = currentTasks      // 重新赋值，强制触发通知
+        
+        // ✅ 强制触发 @Published 通知
+        objectWillChange.send()
         
         persist()
     }
@@ -41,26 +195,26 @@ extension TaskStore {
     /// 切换任务的重要状态
     func toggleImportant(taskID: UUID) {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
-        // 创建新实例并重新赋值整个数组以触发刷新
+        
+        // ✅ 创建新对象以触发 @Published 通知
         var updatedTask = tasks[index]
         updatedTask.isImportant.toggle()
         updatedTask.updatedAt = Date()
+        
         tasks[index] = updatedTask
-        let currentTasks = tasks
-        tasks = currentTasks
         persist()
     }
 
     /// 切换任务的置顶状态
     func togglePinned(taskID: UUID) {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
-        // 创建新实例并重新赋值整个数组以触发刷新
+        
+        // ✅ 创建新对象以触发 @Published 通知
         var updatedTask = tasks[index]
         updatedTask.isPinned.toggle()
         updatedTask.updatedAt = Date()
+        
         tasks[index] = updatedTask
-        let currentTasks = tasks
-        tasks = currentTasks
         persist()
     }
 
@@ -68,13 +222,17 @@ extension TaskStore {
     func addToMyDay(taskID: UUID) {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
         guard !tasks[index].isInMyDay else { return }
-        // 创建新实例并重新赋值整个数组以触发刷新
+        
+        // ✅ 创建新对象以触发 @Published 通知
         var updatedTask = tasks[index]
         updatedTask.isInMyDay = true
         updatedTask.updatedAt = Date()
+        
         tasks[index] = updatedTask
-        let currentTasks = tasks
-        tasks = currentTasks
+        
+        // ✅ 强制触发 @Published 通知
+        objectWillChange.send()
+        
         persist()
     }
     
@@ -82,102 +240,16 @@ extension TaskStore {
     func removeFromMyDay(taskID: UUID) {
         guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
         guard tasks[index].isInMyDay else { return }
-        // 创建新实例并重新赋值整个数组以触发刷新
+        
+        // ✅ 创建新对象以触发 @Published 通知
         var updatedTask = tasks[index]
         updatedTask.isInMyDay = false
         updatedTask.updatedAt = Date()
-        tasks[index] = updatedTask
-        let currentTasks = tasks
-        tasks = currentTasks
-        persist()
-    }
-    
-    /// 更新任务的 createdAt 时间（用于调整排序）
-    func updateTaskCreatedAt(taskID: UUID, to newDate: Date) {
-        guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
-        // 创建新实例并重新赋值整个数组以触发刷新
-        var updatedTask = tasks[index]
-        updatedTask.createdAt = newDate
-        updatedTask.updatedAt = Date()
-        tasks[index] = updatedTask
-        let currentTasks = tasks
-        tasks = currentTasks
-        persist()
-    }
-    
-    // MARK: - Status Changes
-    
-    /// 开始任务
-    func startTask(taskID: UUID) {
-        guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
-        guard tasks[index].status == .notStarted else { return }
         
-        var updatedTask = tasks[index]
-        updatedTask.status = .inProgress
-        updatedTask.startedAt = Date()
-        updatedTask.updatedAt = Date()
         tasks[index] = updatedTask
-        let currentTasks = tasks
-        tasks = currentTasks
-        persist()
-    }
-    
-    /// 完成任务
-    func completeTask(taskID: UUID, endedAt: Date, overtimeAction: OvertimeAction) {
-        guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
-        guard tasks[index].status != .completed else { return }
         
-        var updatedTask = tasks[index]
-        updatedTask.status = .completed
-        updatedTask.completedAt = endedAt
-        updatedTask.actualMinutes = calculateActualMinutes(for: updatedTask)
-        updatedTask.updatedAt = Date()
-        tasks[index] = updatedTask
-        let currentTasks = tasks
-        tasks = currentTasks
-        
-        // 处理超时逻辑
-        handleOvertime(sourceTask: updatedTask, actualMinutes: updatedTask.actualMinutes ?? 0, overtimeAction: overtimeAction)
+        // ✅ 强制触发 @Published 通知
+        objectWillChange.send()
         
         persist()
     }
-    
-    /// 重新打开任务
-    func reopenTask(taskID: UUID) {
-        guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
-        
-        var updatedTask = tasks[index]
-        updatedTask.status = .notStarted
-        updatedTask.startedAt = nil
-        updatedTask.completedAt = nil
-        updatedTask.actualMinutes = nil
-        updatedTask.updatedAt = Date()
-        tasks[index] = updatedTask
-        let currentTasks = tasks
-        tasks = currentTasks
-        persist()
-    }
-    
-    /// 暂停任务
-    func pauseTask(taskID: UUID) {
-        guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
-        guard tasks[index].status == .inProgress else { return }
-        
-        var updatedTask = tasks[index]
-        updatedTask.status = .notStarted
-        updatedTask.startedAt = nil
-        updatedTask.updatedAt = Date()
-        tasks[index] = updatedTask
-        let currentTasks = tasks
-        tasks = currentTasks
-        persist()
-    }
-    
-    // MARK: - Helper Methods
-    
-    private func calculateActualMinutes(for task: TaskItem) -> Int {
-        guard let startedAt = task.startedAt else { return 0 }
-        let duration = Date().timeIntervalSince(startedAt)
-        return Int(duration / 60)
-    }
-}
